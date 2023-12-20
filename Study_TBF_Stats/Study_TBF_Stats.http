@@ -1,0 +1,6 @@
+@Study_TBF_Stats_HostAddress = http://localhost:5103
+
+GET {{Study_TBF_Stats_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
