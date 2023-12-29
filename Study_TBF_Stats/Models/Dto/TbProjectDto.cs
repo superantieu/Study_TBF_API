@@ -34,5 +34,7 @@ namespace Study_TBF_Stats.Models.Dto
 
         public int? UsedHours { get; set; }
 
+        public object? Members { get; set; }
+
     }
 }

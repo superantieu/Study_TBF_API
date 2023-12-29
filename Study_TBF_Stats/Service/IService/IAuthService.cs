@@ -1,6 +1,6 @@
 ﻿using Study_TBF_Stats.Models.Dto;
 
-namespace Study_TBF_Stats.Models.Service.IService
+namespace Study_TBF_Stats.Service.IService
 {
     public interface IAuthService
     {

@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Study_TBF_Stats.Models.Service.IService;
+using Study_TBF_Stats.Models;
+using Study_TBF_Stats.Service.IService;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Study_TBF_Stats.Models.Service
+namespace Study_TBF_Stats.Service
 {
     public class JwtTokenGenerator : IJwtTokenGenerator
 
@@ -21,10 +22,10 @@ namespace Study_TBF_Stats.Models.Service
             var key = Encoding.ASCII.GetBytes(_jwtOptions.Secret);
             var claimList = new List<Claim>
             {
-                
+
                 new Claim(JwtRegisteredClaimNames.Name, tbUser.FullName),
             };
-           
+
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {

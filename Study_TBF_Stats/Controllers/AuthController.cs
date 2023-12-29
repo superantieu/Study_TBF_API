@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Study_TBF_Stats.Models.Dto;
-using Study_TBF_Stats.Models.Service.IService;
+using Study_TBF_Stats.Service.IService;
 
 namespace Study_TBF_Stats.Controllers
 {

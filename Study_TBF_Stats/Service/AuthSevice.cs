@@ -1,31 +1,32 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Study_TBF_Stats.Models;
 using Study_TBF_Stats.Models.Dto;
-using Study_TBF_Stats.Models.Service.IService;
+using Study_TBF_Stats.Service.IService;
 using System;
 
-namespace Study_TBF_Stats.Models.Service
+namespace Study_TBF_Stats.Service
 {
     public class AuthSevice : IAuthService
     {
         private readonly StudyTbfSupContext _studyTbfSupContext;
-        
+
         private readonly IJwtTokenGenerator _jwtTokenGenerator;
         public AuthSevice(StudyTbfSupContext studyTbfSupContext, IJwtTokenGenerator jwtTokenGenerator
             )
         {
             _studyTbfSupContext = studyTbfSupContext;
             _jwtTokenGenerator = jwtTokenGenerator;
-            
+
         }
         public async Task<LoginResponseDto> Login(LoginRequestDto loginRequestDto)
         {
-            var user = _studyTbfSupContext.TbUsers.FirstOrDefault(u=>u.FullName.ToLower()==loginRequestDto.UserName.ToLower());
+            var user = _studyTbfSupContext.TbUsers.FirstOrDefault(u => u.FullName.ToLower() == loginRequestDto.UserName.ToLower());
             if (user == null)
             {
                 return new LoginResponseDto()
                 {
                     User = null,
-                    Token=""
+                    Token = ""
                 };
             }
             var token = _jwtTokenGenerator.GenerateToken(user);

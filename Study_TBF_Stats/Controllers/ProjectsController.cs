@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Study_TBF_Stats.Contract.IContract;
+using Study_TBF_Stats.Exceptions;
 using Study_TBF_Stats.Models;
 using Study_TBF_Stats.Models.Dto;
+using Study_TBF_Stats.RequestFeatures;
 using System.Collections.Generic;
 
 namespace Study_TBF_Stats.Controllers
@@ -13,23 +16,33 @@ namespace Study_TBF_Stats.Controllers
     [ApiController]
     public class ProjectsController : ControllerBase
     {
+        private readonly IServiceManager _serviceManager;
         private readonly StudyTbfSupContext _context;
         private ResponseDto _response;
         private IMapper _mapper;
-        public ProjectsController(StudyTbfSupContext context, IMapper mapper)
+
+        // Constructor của ProjectsController đặt các tham số vào biến thanh viên tương ứng, thông qua constructor để chuyển các dependency vào.
+        public ProjectsController(StudyTbfSupContext context, IMapper mapper, IServiceManager service)
         {
             _context = context;
+            _serviceManager = service;
             _mapper = mapper;
             _response = new ResponseDto();
         }
 
         [HttpGet]
-        public ResponseDto Get()
+
+        public async Task<IActionResult> GetProjects([FromQuery] ProjectParameters projectParameters)
         {
             try
             {
+                if (!(projectParameters.MinFloorArea < projectParameters.MaxFloorArea))
+                    throw new MaxAreaRangeBadRequestException();
 
-                var result = _context.TbTimeSheets
+                var pageResult = await _serviceManager.ProjectService.GetAllProjectAsync(projectParameters, trackChanges: false);
+                Response.Headers.Add("X-Pagination", System.Text.Json.JsonSerializer.Serialize(pageResult.metaData));
+
+                var usedhour = _context.TbTimeSheets
                     .GroupBy(ts => ts.ProjectId)
                     .Select(group => new
                     {
@@ -37,26 +50,47 @@ namespace Study_TBF_Stats.Controllers
                         UsedHours = group.Sum(ts => ts.Tshours)
                     });
 
-                var combinedResults = _mapper.Map<IEnumerable<TbProjectDto>>(_context.TbProjects);
 
-                foreach (var projectDto in combinedResults)
+                foreach (var projectDto in pageResult.tbProjects)
 
                 {
-                    var timeSheetResult = result.FirstOrDefault(ts => ts.ProjectId == projectDto.ProjectId);
+                    var timeSheetResult = usedhour.FirstOrDefault(ts => ts.ProjectId == projectDto.ProjectId);
                     projectDto.UsedHours = timeSheetResult != null ? timeSheetResult.UsedHours : 0;
+                    // Chuỗi chứa danh sách userId cần lọc
+                    var userIdString = projectDto.Listmember;
+                    // Chuyển đổi chuỗi thành danh sách các userId
+                    List<int> userIdsToFilter = userIdString
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(id => int.Parse(id.Trim('(', ')')))
+                        .ToList();
+                    // Lọc người dùng dựa trên userID
+                    List<TbUser> filterUsers = _context.TbUsers.Where(user => userIdsToFilter.Contains(user.UserId)).ToList();
+                    projectDto.Members = filterUsers;
                 }
 
-                _response.Result = combinedResults.ToList();
 
+                var responseDto = new ResponseDto
+                {
+                    Result = pageResult.tbProjects,
+                    IsSuccess = true,
+                    Message = "Project data retrieved successfully"
+
+                };
+
+                return Ok(responseDto);
 
 
             }
             catch (Exception ex)
             {
-                _response.IsSuccess = false;
-                _response.Message = ex.Message;
+                return StatusCode(500, new ResponseDto
+                {
+
+                    IsSuccess = false,
+                    Message = ex.Message
+                });
             }
-            return _response;
+
         }
 
         [HttpGet]
