@@ -1,14 +1,17 @@
 ﻿using AutoMapper;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Study_TBF_Stats.Contract.IContract;
 using Study_TBF_Stats.Exceptions;
 using Study_TBF_Stats.Models;
 using Study_TBF_Stats.Models.Dto;
 using Study_TBF_Stats.RequestFeatures;
 using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 
 namespace Study_TBF_Stats.Controllers
 {
@@ -65,19 +68,47 @@ namespace Study_TBF_Stats.Controllers
                         .ToList();
                     // Lọc người dùng dựa trên userID
                     List<TbUser> filterUsers = _context.TbUsers.Where(user => userIdsToFilter.Contains(user.UserId)).ToList();
-                    projectDto.Members = filterUsers;
+
+                    projectDto.FilterMembers = filterUsers;
+                }
+                if (projectParameters.Discipline == null)
+                {
+                    var responseDto = new ResponseDto
+                    {
+                        Result = pageResult.tbProjects,
+                        IsSuccess = true,
+                        Message = "Project data retrieved successfully"
+
+                    };
+
+                    return Ok(responseDto);
+                }
+                else
+                {
+                    var discipline = projectParameters.Discipline;
+                    var filterByDiscipline = pageResult.tbProjects.Where(project => HasMemberWithDiscipline(project, discipline)).ToList();
+                    static bool HasMemberWithDiscipline(TbProjectDto project, string? discipline)
+                    {
+                        if(project.FilterMembers != null && project.FilterMembers.Any())
+                        {
+                            return project.FilterMembers.Any(member=>member.Discipline==discipline);
+                        }
+                        return false;
+                       
+                    }
+
+
+                    var responseDto = new ResponseDto
+                    {
+                        Result = filterByDiscipline,
+                        IsSuccess = true,
+                        Message = "Project data retrieved successfully"
+
+                    };
+
+                    return Ok(responseDto);
                 }
 
-
-                var responseDto = new ResponseDto
-                {
-                    Result = pageResult.tbProjects,
-                    IsSuccess = true,
-                    Message = "Project data retrieved successfully"
-
-                };
-
-                return Ok(responseDto);
 
 
             }
@@ -93,21 +124,50 @@ namespace Study_TBF_Stats.Controllers
 
         }
 
-        [HttpGet]
-        [Route("{id:int}")]
-        public ResponseDto Get(int id)
+   
+        [HttpGet("{projectId:int}")]
+        public async Task<IActionResult> GetProject(int projectId)
         {
-            try
+            var project = await _serviceManager.ProjectService.GetProjectAsync(projectId, trackChanges: false);
+            var usedhour = _context.TbTimeSheets
+                   .Where(ts => ts.ProjectId == projectId)
+                   .GroupBy(ts => ts.ProjectId)
+                   .Select(group => new
+                   {
+                       ProjectId = group.Key,
+                       UsedHours = group.Sum(ts => ts.Tshours)
+                   });
+
+
+
+
+            project.UsedHours = usedhour == null ? 0 : usedhour.First().UsedHours;
+            // Chuỗi chứa danh sách userId cần lọc
+            var userIdString = project.Listmember;
+                // Chuyển đổi chuỗi thành danh sách các userId
+                List<int> userIdsToFilter = userIdString
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(id => int.Parse(id.Trim('(', ')')))
+                    .ToList();
+                // Lọc người dùng dựa trên userID
+                List<TbUser> filterUsers = _context.TbUsers.Where(user => userIdsToFilter.Contains(user.UserId)).ToList();
+                project.FilterMembers = filterUsers;
+            
+
+
+            var responseDto = new ResponseDto
             {
-                TbProject obj = _context.TbProjects.First(u => u.ProjectId == id);
-                _response.Result = _mapper.Map<TbProjectDto>(obj);
-            }
-            catch (Exception ex)
-            {
-                _response.IsSuccess = false;
-                _response.Message = ex.Message;
-            }
-            return _response;
+                Result = project,
+                IsSuccess = true,
+                Message = "Project data retrieved successfully"
+
+            };
+
+            return Ok(responseDto);
+
+
+            
+
         }
         [HttpPost]
         public ResponseDto Post([FromForm] TbProjectDto tbProjectDto)

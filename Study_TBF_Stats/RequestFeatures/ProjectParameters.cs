@@ -7,5 +7,8 @@
 
         public bool? Completed { get; set; }
         public string? SearchTerm { get; set; }
+        public string? Discipline { get; set; }
+        public string? Member { get; set; }
+
     }
 }

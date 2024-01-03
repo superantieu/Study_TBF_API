@@ -33,11 +33,11 @@ namespace Study_TBF_Stats.Repository
             return PagedList<TbUser>.ToPagedList(users, usersParameter.pageNumber, usersParameter.pageSize);
         }
 
-        public async Task<TbUser> GetUserAsync(Guid userId, bool trackChanges)
+        public async Task<TbUser> GetUserAsync(int userId, bool trackChanges)
         {
             return await FindByCondtion(u => u.UserId.Equals(userId), trackChanges).SingleOrDefaultAsync();
         }
 
-      
+       
     }
 }

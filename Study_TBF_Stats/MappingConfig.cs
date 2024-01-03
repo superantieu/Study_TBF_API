@@ -11,7 +11,9 @@ namespace Study_TBF_Stats
             var mappingConfig = new MapperConfiguration(config =>
             {
                 config.CreateMap<TbProject, TbProjectDto>()
-               .ForMember(dest => dest.UsedHours, opt => opt.MapFrom(src =>0))
+               .ForMember(dest => dest.UsedHours, opt => opt.MapFrom(src => 0))
+                .ReverseMap();
+                config.CreateMap<TbUser, TbUserDto>()
                 .ReverseMap();
             });
             return mappingConfig;

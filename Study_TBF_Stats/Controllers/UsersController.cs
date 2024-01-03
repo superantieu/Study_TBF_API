@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Study_TBF_Stats.Contract;
 using Study_TBF_Stats.Contract.IContract;
 using Study_TBF_Stats.Models;
 using Study_TBF_Stats.Models.Dto;
@@ -47,6 +48,25 @@ namespace Study_TBF_Stats.Controllers
                     Message = ex.Message
                 });
             }
+        }
+        [HttpGet("{userId:int}")]
+        public async Task<IActionResult> GetUser(int userId)
+        {
+            var project = await _services.UsersService.GetUserAsync(userId, trackChanges: false);
+ 
+            var responseDto = new ResponseDto
+            {
+                Result = project,
+                IsSuccess = true,
+                Message = "Project data retrieved successfully"
+
+            };
+
+            return Ok(responseDto);
+
+
+
+
         }
     }
 }
